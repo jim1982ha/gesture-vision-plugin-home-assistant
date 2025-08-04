@@ -1,0 +1,20 @@
+{
+  "id": "home-assistant",
+  "nameKey": "pluginHaName",
+  "descriptionKey": "pluginHaDescription",
+  "version": "1.0.0",
+  "author": "GestureVision Team",
+  "icon": {
+    "type": "mdi",
+    "name": "mdi-home-assistant"
+  },
+  "capabilities": {
+    "hasGlobalSettings": true,
+    "providesActions": true,
+    "requiresHaData": true
+  },
+  "globalConfigFileName": "config.home-assistant.json",
+  "defaultGlobalConfigPath": "default.config.home-assistant.json",
+  "backendEntry": "backend.plugin.js",
+  "frontendEntry": "frontend/index.js"
+}

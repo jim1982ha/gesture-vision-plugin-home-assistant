@@ -1,0 +1,58 @@
+/* FILE: plugins/home-assistant/frontend/action-display-details.js */
+const { getActionIconDetails } =
+  window.GestureVision.shared.services.actionDisplayUtils;
+const { translate } = window.GestureVision.services;
+
+export const getHaActionDisplayDetails = (settings, context) => {
+  if (
+    !settings ||
+    typeof settings.entityId !== "string" ||
+    !settings.entityId ||
+    typeof settings.service !== "string" ||
+    !settings.service
+  ) {
+    const errorMsg = translate("invalidHaActionSettings", {
+      defaultValue: "Invalid Home Assistant action settings.",
+    });
+    console.warn(
+      `[HA Plugin getHaActionDisplayDetails] Settings invalid. EntityID: '${settings?.entityId}', Service: '${settings?.service}'. Returning error.`
+    );
+    return [{ icon: "error_outline", value: errorMsg }];
+  }
+
+  const manifest =
+    context.pluginUIService.getPluginManifest?.("home-assistant");
+  const iconDetails = getActionIconDetails(manifest);
+
+  const serviceKeyFromSettings = settings.service;
+  const serviceNameOnly = serviceKeyFromSettings.includes(".")
+    ? serviceKeyFromSettings.substring(serviceKeyFromSettings.indexOf(".") + 1)
+    : serviceKeyFromSettings;
+
+  const commonServicesToTranslate = ["toggle", "turn_on", "turn_off"];
+  let serviceDisplayName = serviceNameOnly;
+
+  if (commonServicesToTranslate.includes(serviceNameOnly.toLowerCase())) {
+    serviceDisplayName = translate(serviceNameOnly.toLowerCase(), {
+      defaultValue: serviceNameOnly,
+    });
+  }
+
+  const entityIdDisplay =
+    settings.entityId || translate("Not Set", { defaultValue: "(Not Set)" });
+
+  return [
+    {
+      icon: iconDetails.iconName,
+      iconType: iconDetails.iconType,
+      value: entityIdDisplay,
+    },
+    {
+      icon: "send",
+      iconType: "material-icons",
+      value: `${translate("Service", {
+        defaultValue: "Service",
+      })}: ${serviceDisplayName}`,
+    },
+  ];
+};

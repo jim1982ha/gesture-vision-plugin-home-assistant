@@ -1,0 +1,3 @@
+# Ignore all plugins config file expect the examples ones
+*config.*.json
+!config.*.example.json
