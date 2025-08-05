@@ -1,4 +1,4 @@
-/* FILE: extensions/plugins/home-assistant/frontend/components/action-settings.component.js */
+/* FILE: extensions/plugins/gesture-vision-plugin-home-assistant/frontend/components/action-settings.component.js */
 const COMMON_CONTROLLABLE_DOMAINS = ["light", "switch", "fan", "cover", "climate", "input_boolean", "script", "scene", "button", "input_select"];
 
 export class HaActionSettingsComponent {
@@ -20,7 +20,7 @@ export class HaActionSettingsComponent {
 
   render(currentSettings, context) {
     this.#currentSettings = { ...currentSettings };
-    const cachedHaData = this.#appStore.getState().pluginExtDataCache.get('home-assistant');
+    const cachedHaData = this.#appStore.getState().pluginExtDataCache.get('gesture-vision-plugin-home-assistant');
     this.#context = { ...context, data: { ...context.data, haEntities: cachedHaData?.entities, haServices: cachedHaData?.services } };
 
     this.#uiContainer.innerHTML = `
@@ -69,7 +69,7 @@ export class HaActionSettingsComponent {
   }
 
   #isHaReady = () => {
-    const haConfig = this.#appStore.getState().pluginGlobalConfigs.get("home-assistant");
+    const haConfig = this.#appStore.getState().pluginGlobalConfigs.get("gesture-vision-plugin-home-assistant");
     const haData = this.#context.data;
     return !!(haConfig?.url && haConfig.token && haData?.haEntities?.length > 0 && haData.haServices);
   };
@@ -138,12 +138,16 @@ export class HaActionSettingsComponent {
   
   #ensureSubscriptions() {
     if (this.#unsubscribeStore) this.#unsubscribeStore();
-    this.#unsubscribeStore = this.#appStore.subscribe(state => {
-      const haData = state.pluginExtDataCache.get('home-assistant');
-      if (haData) {
-        this.#context = { ...this.#context, data: { haEntities: haData.entities, haServices: haData.services } };
-        this.#updateAllDropdownStates();
-      }
+    this.#unsubscribeStore = this.#appStore.subscribe((state, prevState) => {
+        const oldHaData = prevState.pluginExtDataCache.get('gesture-vision-plugin-home-assistant');
+        const newHaData = state.pluginExtDataCache.get('gesture-vision-plugin-home-assistant');
+
+        // FIX: Check if data has just arrived (was null/falsy before, is truthy now).
+        if (!oldHaData && newHaData) {
+            console.log("[HA ActionSettings] Detected HA data arrival. Refreshing UI.");
+            this.#context = { ...this.#context, data: { haEntities: newHaData.entities, haServices: newHaData.services } };
+            this.#updateAllDropdownStates();
+        }
     });
   }
 

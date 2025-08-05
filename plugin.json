@@ -2,7 +2,7 @@
   "id": "gesture-vision-plugin-home-assistant",
   "nameKey": "pluginHaName",
   "descriptionKey": "pluginHaDescription",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "author": "GestureVision Team",
   "icon": {
     "type": "mdi",
