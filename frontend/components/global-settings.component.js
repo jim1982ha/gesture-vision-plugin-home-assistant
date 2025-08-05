@@ -29,7 +29,11 @@ export class HaGlobalSettingsComponent extends BasePluginGlobalSettingsComponent
         const urlClass = !config?.url ? 'value-not-set' : '';
         const tokenClass = !tokenIsSet ? 'value-not-set' : 'masked';
 
+        // FIX: Add the description line to match the layout of other plugins.
+        const description = translate(this.manifest.descriptionKey || '', { defaultValue: '' });
+        
         viewContent.innerHTML = `
+            <div class="card-detail-line"><span class="material-icons card-detail-icon" title="${translate('descriptionOptionalLabel')}">notes</span><span class="card-detail-value allow-wrap">${description}</span></div>
             <div class="card-detail-line"><span class="card-detail-icon material-icons">public</span><span class="card-detail-value ha-url-display ${urlClass}">${urlToShow}</span></div>
             <div class="card-detail-line"><span class="card-detail-icon mdi mdi-key-variant"></span><span class="card-detail-value ha-token-display ${tokenClass}">${tokenIsSet ? '********' : translate('Not Set')}</span></div>`;
         return viewContent;
