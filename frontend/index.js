@@ -55,8 +55,8 @@ const homeAssistantPluginFrontendModule = {
     if (haConfig) await fetchHaData(appStore);
   },
 
-  createGlobalSettingsComponent: (pluginId, manifest, context) => createHaGlobalSettingsComponent(pluginId, manifest, context, window.GestureVision),
-  createActionSettingsComponent: (pluginId, manifest, context) => createHaActionSettingsComponent(pluginId, manifest, context, window.GestureVision),
+  createGlobalSettingsComponent: (pluginId, manifest, context) => createHaGlobalSettingsComponent(pluginId, manifest, context),
+  createActionSettingsComponent: (pluginId, manifest, context) => createHaActionSettingsComponent(pluginId, manifest, context),
   getActionDisplayDetails: getHaActionDisplayDetails,
 };
 
