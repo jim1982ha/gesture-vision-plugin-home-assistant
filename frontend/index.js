@@ -1,59 +1,55 @@
 /* FILE: extensions/plugins/gesture-vision-plugin-home-assistant/frontend/index.js */
-const { createHaActionSettingsComponent } = await import("./components/action-settings.component.js");
-const { createHaGlobalSettingsComponent } = await import("./components/global-settings.component.js");
-const { getHaActionDisplayDetails } = await import("./action-display-details.js");
-const { pubsub } = window.GestureVision.services;
-const { PLUGIN_CONFIG_UPDATED_EVENT_PREFIX } = window.GestureVision.shared.constants;
-
-const HA_PLUGIN_ID = 'gesture-vision-plugin-home-assistant';
-let isFetchingHaData = false;
-
-const fetchHaData = async (appStore) => {
-  if (isFetchingHaData) return;
-  const currentHaConfig = appStore.getState().pluginGlobalConfigs.get(HA_PLUGIN_ID);
-  
-  // LOG: Announce that the fetch process is starting.
-  console.log(`[HA Plugin] Starting fetchHaData. Config present: ${!!currentHaConfig?.url}`);
-
-  if (!currentHaConfig?.url || !currentHaConfig.token) {
-    appStore.getState().actions.setPluginExtData(HA_PLUGIN_ID, { entities: null, services: null });
-    return;
-  }
-
-  isFetchingHaData = true;
-  let haDataCache = null;
-  
-  try {
-    const [entitiesResponse, servicesResponse] = await Promise.all([
-      fetch(`/api/plugins/${HA_PLUGIN_ID}/entities`),
-      fetch(`/api/plugins/${HA_PLUGIN_ID}/services`),
-    ]);
-    const entities = entitiesResponse.ok ? await entitiesResponse.json() : [];
-    const services = servicesResponse.ok ? await servicesResponse.json() : {};
-    haDataCache = { entities, services };
-    if (!entitiesResponse.ok || !servicesResponse.ok) {
-        throw new Error(`HA data fetch failed. Status: Entities=${entitiesResponse.status}, Services=${servicesResponse.status}`);
-    }
-    // LOG: Announce successful fetch.
-    console.log(`[HA Plugin] Successfully fetched ${entities.length} entities and service domains.`);
-  } catch (error) {
-    haDataCache = { entities: null, services: null };
-    // LOG: Announce fetch failure.
-    console.error(`[HA Plugin] Fetching HA data failed.`, error);
-    pubsub.publish('ui:showError', { messageKey: "haDataFetchFailed", substitutions: { message: (error instanceof Error ? error.message : String(error)) } });
-  } finally {
-    isFetchingHaData = false;
-    appStore.getState().actions.setPluginExtData(HA_PLUGIN_ID, haDataCache);
-  }
-};
-
 const homeAssistantPluginFrontendModule = {
   manifest: { /* populated by loader */ },
 
   async init(context) {
-    const appStore = context.coreStateManager;
+    const { createHaActionSettingsComponent } = await import("./components/action-settings.component.js");
+    const { createHaGlobalSettingsComponent } = await import("./components/global-settings.component.js");
+    const { getHaActionDisplayDetails } = await import("./action-display-details.js");
+    const { pubsub } = context.services;
+    const { PLUGIN_CONFIG_UPDATED_EVENT_PREFIX } = context.shared.constants;
     
-    // Combined subscription to handle all relevant state changes efficiently.
+    const HA_PLUGIN_ID = this.manifest.id;
+    let isFetchingHaData = false;
+    
+    const appStore = context.coreStateManager;
+
+    const fetchHaData = async () => {
+      if (isFetchingHaData) return;
+      const currentHaConfig = appStore.getState().pluginGlobalConfigs.get(HA_PLUGIN_ID);
+      
+      console.log(`[HA Plugin] Starting fetchHaData. Config present: ${!!currentHaConfig?.url}`);
+    
+      if (!currentHaConfig?.url || !currentHaConfig.token) {
+        appStore.getState().actions.setPluginExtData(HA_PLUGIN_ID, { entities: null, services: null });
+        return;
+      }
+    
+      isFetchingHaData = true;
+      let haDataCache = null;
+      
+      try {
+        const [entitiesResponse, servicesResponse] = await Promise.all([
+          fetch(`/api/plugins/${HA_PLUGIN_ID}/entities`),
+          fetch(`/api/plugins/${HA_PLUGIN_ID}/services`),
+        ]);
+        const entities = entitiesResponse.ok ? await entitiesResponse.json() : [];
+        const services = servicesResponse.ok ? await servicesResponse.json() : {};
+        haDataCache = { entities, services };
+        if (!entitiesResponse.ok || !servicesResponse.ok) {
+            throw new Error(`HA data fetch failed. Status: Entities=${entitiesResponse.status}, Services=${servicesResponse.status}`);
+        }
+        console.log(`[HA Plugin] Successfully fetched ${entities.length} entities and service domains.`);
+      } catch (error) {
+        haDataCache = { entities: null, services: null };
+        console.error(`[HA Plugin] Fetching HA data failed.`, error);
+        pubsub.publish('ui:showError', { messageKey: "haDataFetchFailed", substitutions: { message: (error instanceof Error ? error.message : String(error)) } });
+      } finally {
+        isFetchingHaData = false;
+        appStore.getState().actions.setPluginExtData(HA_PLUGIN_ID, haDataCache);
+      }
+    };
+    
     appStore.subscribe((newState, prevState) => {
       const newConfig = newState.pluginGlobalConfigs.get(HA_PLUGIN_ID);
       const oldConfig = prevState.pluginGlobalConfigs.get(HA_PLUGIN_ID);
@@ -61,33 +57,31 @@ const homeAssistantPluginFrontendModule = {
       const oldManifest = prevState.pluginManifests.find(m => m.id === HA_PLUGIN_ID);
       
       const configChanged = JSON.stringify(newConfig) !== JSON.stringify(oldConfig);
-      // FIX: More robust check for the "just enabled" transition.
       const justEnabled = (!oldManifest || oldManifest.status === 'disabled') && newManifest?.status === 'enabled';
 
       if (configChanged) {
         console.log('[HA Plugin] Global config changed, triggering data fetch.');
-        fetchHaData(appStore);
+        fetchHaData();
       }
       
       if (justEnabled) {
-        // LOG: Announce that the "just enabled" state was detected.
         console.log('[HA Plugin] Plugin transitioned to ENABLED state, triggering data fetch.');
-        fetchHaData(appStore);
+        fetchHaData();
       }
     });
     
-    // Initial fetch on page load if plugin is already configured and enabled.
     const initialConfig = appStore.getState().pluginGlobalConfigs.get(HA_PLUGIN_ID);
     const initialManifest = appStore.getState().pluginManifests.find(m => m.id === HA_PLUGIN_ID);
     if (initialConfig && initialManifest?.status === 'enabled') {
       console.log('[HA Plugin] Initializing on page load, config present and plugin enabled.');
-      await fetchHaData(appStore);
+      await fetchHaData();
     }
+    
+    // Assign factories and renderers to the module instance itself
+    this.createGlobalSettingsComponent = (pluginId, manifest, context) => createHaGlobalSettingsComponent(pluginId, manifest, context);
+    this.createActionSettingsComponent = (pluginId, manifest, context) => createHaActionSettingsComponent(pluginId, manifest, context);
+    this.getActionDisplayDetails = getHaActionDisplayDetails;
   },
-
-  createGlobalSettingsComponent: (pluginId, manifest, context) => createHaGlobalSettingsComponent(pluginId, manifest, context),
-  createActionSettingsComponent: (pluginId, manifest, context) => createHaActionSettingsComponent(pluginId, manifest, context),
-  getActionDisplayDetails: getHaActionDisplayDetails,
 };
 
 export default homeAssistantPluginFrontendModule;

@@ -1,9 +1,9 @@
 /* FILE: plugins/home-assistant/frontend/action-display-details.js */
-const { getActionIconDetails } =
-  window.GestureVision.shared.services.actionDisplayUtils;
-const { translate } = window.GestureVision.services;
-
 export const getHaActionDisplayDetails = (settings, context) => {
+  const { services, shared, manifest } = context;
+  const { translate } = services;
+  const { getActionIconDetails } = shared.services.actionDisplayUtils;
+
   if (
     !settings ||
     typeof settings.entityId !== "string" ||
@@ -20,8 +20,7 @@ export const getHaActionDisplayDetails = (settings, context) => {
     return [{ icon: "error_outline", value: errorMsg }];
   }
 
-  const manifest =
-    context.pluginUIService.getPluginManifest?.("home-assistant");
+  // FIX: Use the manifest passed directly in the context object.
   const iconDetails = getActionIconDetails(manifest);
 
   const serviceKeyFromSettings = settings.service;

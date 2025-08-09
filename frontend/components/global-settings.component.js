@@ -1,36 +1,37 @@
 /* FILE: extensions/plugins/gesture-vision-plugin-home-assistant/frontend/components/global-settings.component.js */
-const { translate } = window.GestureVision.services;
-const { BasePluginGlobalSettingsComponent } = window.GestureVision.ui.components;
-
-// Field descriptors for the generic form renderer in the base component.
 const haGlobalSettingsFields = [
     { id: 'url', type: 'url', labelKey: 'haUrl', placeholderKey: 'haUrlPlaceholder', autocomplete: 'url' },
     { id: 'token', type: 'password', labelKey: 'accessToken', autocomplete: 'new-password' }
 ];
 
-export class HaGlobalSettingsComponent extends BasePluginGlobalSettingsComponent {
+export class HaGlobalSettingsComponent {
+    #baseComponent;
+
     constructor(pluginId, manifest, context) {
-        // Pass field descriptors to the base class. It will handle form creation.
-        super(pluginId, manifest, context, haGlobalSettingsFields);
+        // FIX: Access BasePluginGlobalSettingsComponent from the context, not a global.
+        const { BasePluginGlobalSettingsComponent } = context.uiComponents;
+        
+        this.#baseComponent = new BasePluginGlobalSettingsComponent(pluginId, manifest, context, haGlobalSettingsFields);
+
+        this.#baseComponent.renderViewContent = this.renderViewContent.bind(this);
+        this.#baseComponent.validateForm = this.validateForm.bind(this);
     }
+    
+    get #context() { return this.#baseComponent.context; }
+    get #initialConfig() { return this.#baseComponent.initialConfig; }
+    get #manifest() { return this.#baseComponent.manifest; }
 
-    // Override only the methods that need custom behavior for Home Assistant.
-
-    /**
-     * Provides the custom HTML for the "view" mode of the card.
-     * @returns {HTMLElement} The populated card details element.
-     */
     renderViewContent() {
+        const { translate } = this.#context.services;
         const viewContent = document.createElement('div');
         viewContent.className = 'card-details';
-        const config = this.initialConfig; // initialConfig is a protected property from the base class
+        const config = this.#initialConfig;
         const urlToShow = config?.url || translate('Not Set');
         const tokenIsSet = !!config?.token;
         const urlClass = !config?.url ? 'value-not-set' : '';
         const tokenClass = !tokenIsSet ? 'value-not-set' : 'masked';
 
-        // FIX: Add the description line to match the layout of other plugins.
-        const description = translate(this.manifest.descriptionKey || '', { defaultValue: '' });
+        const description = translate(this.#manifest.descriptionKey || '', { defaultValue: '' });
         
         viewContent.innerHTML = `
             <div class="card-detail-line"><span class="material-icons card-detail-icon" title="${translate('descriptionOptionalLabel')}">notes</span><span class="card-detail-value allow-wrap">${description}</span></div>
@@ -39,12 +40,9 @@ export class HaGlobalSettingsComponent extends BasePluginGlobalSettingsComponent
         return viewContent;
     }
 
-    /**
-     * Provides custom validation logic for the Home Assistant settings form.
-     * @returns {{isValid: boolean, errors?: string[]}} Validation result.
-     */
     validateForm() {
-        const values = this.getFormValues();
+        const { translate } = this.#context.services;
+        const values = this.#baseComponent.getFormValues();
         const errors = [];
         if (values.url && !values.token) errors.push(translate("haTokenRequiredWithUrl"));
         if (!values.url && values.token) errors.push(translate("haUrlRequiredWithToken"));
@@ -55,6 +53,14 @@ export class HaGlobalSettingsComponent extends BasePluginGlobalSettingsComponent
         }
         return { isValid: errors.length === 0, errors: errors.length > 0 ? errors : undefined };
     }
+
+    // Delegate all public methods to the base component instance
+    getElement() { return this.#baseComponent.getElement(); }
+    update(c, x, e) { this.#baseComponent.update(c, x, e); }
+    onConfigUpdate(n) { this.#baseComponent.onConfigUpdate(n); }
+    destroy() { this.#baseComponent.destroy(); }
+    applyTranslations() { this.#baseComponent.applyTranslations(); }
+    getConfigToSave() { return this.#baseComponent.getConfigToSave(); }
 }
 
 export const createHaGlobalSettingsComponent = (pluginId, manifest, context) => new HaGlobalSettingsComponent(pluginId, manifest, context);
