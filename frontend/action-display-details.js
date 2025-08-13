@@ -20,7 +20,6 @@ export const getHaActionDisplayDetails = (settings, context) => {
     return [{ icon: "error_outline", value: errorMsg }];
   }
 
-  // FIX: Use the manifest passed directly in the context object.
   const iconDetails = getActionIconDetails(manifest);
 
   const serviceKeyFromSettings = settings.service;

@@ -35,5 +35,6 @@
   "toggle": "切换",
   "turn_on": "打开",
   "turn_off": "关闭",
-  "invalidHaActionSettings": "无效的 Home Assistant 动作设置"
+  "invalidHaActionSettings": "无效的 Home Assistant 动作设置",
+  "haDataFetchFailed": "获取 Home Assistant 数据失败: {message}"
 }

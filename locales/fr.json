@@ -35,5 +35,6 @@
     "toggle": "Basculer",
     "turn_on": "Allumer",
     "turn_off": "Éteindre",
-    "invalidHaActionSettings": "Paramètres d'action Home Assistant invalides."
+    "invalidHaActionSettings": "Paramètres d'action Home Assistant invalides.",
+    "haDataFetchFailed": "Échec de la récupération des données Home Assistant : {message}"
 }

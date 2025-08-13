@@ -35,5 +35,6 @@
   "toggle": "Toggle",
   "turn_on": "Turn On",
   "turn_off": "Turn Off",
-  "invalidHaActionSettings": "Invalid Home Assistant action settings."
+  "invalidHaActionSettings": "Invalid Home Assistant action settings.",
+  "haDataFetchFailed": "Failed to fetch Home Assistant data: {message}"
 }
