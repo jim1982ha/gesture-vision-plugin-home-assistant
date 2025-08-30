@@ -1,9 +1,10 @@
 /* FILE: extensions/plugins/gesture-vision-plugin-home-assistant/frontend/index.js */
+import { getHaActionDisplayDetails } from "./action-display-details.js";
+
 const homeAssistantPluginFrontendModule = {
   manifest: { /* populated by loader */ },
 
   async init(context) {
-    const { getHaActionDisplayDetails } = await import("./action-display-details.js");
     const { pubsub } = context.services;
     const HA_PLUGIN_ID = this.manifest.id;
     let isFetchingHaData = false;
@@ -55,9 +56,9 @@ const homeAssistantPluginFrontendModule = {
     const initialConfig = appStore.getState().pluginGlobalConfigs.get(HA_PLUGIN_ID);
     const initialManifest = appStore.getState().pluginManifests.find(m => m.id === HA_PLUGIN_ID);
     if (initialConfig && initialManifest?.status === 'enabled') await fetchHaData();
-    
-    this.getActionDisplayDetails = getHaActionDisplayDetails;
   },
+
+  getActionDisplayDetails: getHaActionDisplayDetails,
 
   createGlobalSettingsComponent: (pluginId, manifest, context) => {
     const { BasePluginGlobalSettingsComponent } = context.uiComponents;

@@ -3,6 +3,7 @@ export const getHaActionDisplayDetails = (settings, context) => {
   const { services, shared, manifest } = context;
   const { translate } = services;
   const { getActionIconDetails } = shared.services.actionDisplayUtils;
+  const { GESTURE_CATEGORY_ICONS } = shared.constants;
 
   if (
     !settings ||
@@ -17,7 +18,7 @@ export const getHaActionDisplayDetails = (settings, context) => {
     console.warn(
       `[HA Plugin getHaActionDisplayDetails] Settings invalid. EntityID: '${settings?.entityId}', Service: '${settings?.service}'. Returning error.`
     );
-    return [{ icon: "error_outline", value: errorMsg }];
+    return [{ icon: GESTURE_CATEGORY_ICONS.UI_ERROR.iconName, value: errorMsg }];
   }
 
   const iconDetails = getActionIconDetails(manifest);
@@ -46,7 +47,7 @@ export const getHaActionDisplayDetails = (settings, context) => {
       value: entityIdDisplay,
     },
     {
-      icon: "send",
+      icon: GESTURE_CATEGORY_ICONS.UI_ACTION.iconName,
       iconType: "material-icons",
       value: `${translate("Service", {
         defaultValue: "Service",

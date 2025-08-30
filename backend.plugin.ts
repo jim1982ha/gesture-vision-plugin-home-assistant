@@ -7,7 +7,7 @@ import { BaseBackendPlugin } from '#backend/plugins/base-backend.plugin.js';
 import manifestFromFile from './plugin.json' with { type: "json" };
 import { type HomeAssistantConfig, type HaActionInstanceSettings, type HAEntity, type HAServices } from './types.js';
 
-import type { ActionResult, PluginManifest, ActionDetails } from "#shared/types/index.js";
+import type { ActionResult, PluginManifest, ActionDetails } from "#shared/index.js";
 import type { ActionHandler } from '#backend/types/index.js';
 
 const HaGlobalConfigSchema = z.object({
