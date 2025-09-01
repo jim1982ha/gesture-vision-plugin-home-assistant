@@ -36,5 +36,6 @@
     "turn_on": "Allumer",
     "turn_off": "Éteindre",
     "invalidHaActionSettings": "Paramètres d'action Home Assistant invalides.",
-    "haDataFetchFailed": "Échec de la récupération des données Home Assistant : {message}"
+    "haDataFetchFailed": "Échec de la récupération des données Home Assistant : {message}",
+    "pluginTestConfigMissing": "Les détails de configuration sont requis pour tester la connexion."
 }

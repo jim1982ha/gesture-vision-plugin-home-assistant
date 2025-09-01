@@ -102,7 +102,10 @@ const homeAssistantPluginFrontendModule = {
 
     const fetchEntities = async (_ctx, currentSettings, filterText) => {
       const domain = currentSettings?.domain;
-      if (!domain) return [{ value: "", label: translate("Select_Domain"), disabled: true }];
+      // FIX: Use explicit check for a non-empty string.
+      if (typeof domain !== 'string' || !domain.trim()) {
+        return [{ value: "", label: translate("Select_Domain"), disabled: true }];
+      }
       if (!isHaReady()) return [{ value: "", label: translate("haNotConnectedErrorShort"), disabled: true }];
       const haData = getHaData();
       return (haData.entities || [])
@@ -113,7 +116,10 @@ const homeAssistantPluginFrontendModule = {
 
     const fetchServices = async (_ctx, currentSettings, filterText) => {
       const entityId = currentSettings?.entityId;
-      if (!entityId) return [{ value: "", label: translate("Select_Entity"), disabled: true }];
+      // FIX: Use explicit check for a non-empty string.
+      if (typeof entityId !== 'string' || !entityId.trim()) {
+        return [{ value: "", label: translate("Select_Entity"), disabled: true }];
+      }
       if (!isHaReady()) return [{ value: "", label: translate("haNotConnectedErrorShort"), disabled: true }];
       const haData = getHaData();
       const domain = entityId.split('.')[0];
@@ -126,9 +132,9 @@ const homeAssistantPluginFrontendModule = {
     };
 
     return [
-      { id: 'domain', type: 'select', searchable: true, labelKey: 'haDomain', optionsSource: fetchDomains, placeholderKey: 'filterDomainPlaceholder', required: true },
-      { id: 'entityId', type: 'select', searchable: true, labelKey: 'haEntity', optionsSource: fetchEntities, dependsOn: ['domain'], placeholderKey: 'filterEntityPlaceholder', required: true },
-      { id: 'service', type: 'select', searchable: true, labelKey: 'haService', optionsSource: fetchServices, dependsOn: ['entityId'], placeholderKey: 'filterServicePlaceholder', required: true }
+      { id: 'domain', type: 'select', labelKey: 'haDomain', optionsSource: fetchDomains, placeholderKey: 'filterDomainPlaceholder', required: true },
+      { id: 'entityId', type: 'select', labelKey: 'haEntity', optionsSource: fetchEntities, dependsOn: ['domain'], placeholderKey: 'filterEntityPlaceholder', required: true },
+      { id: 'service', type: 'select', labelKey: 'haService', optionsSource: fetchServices, dependsOn: ['entityId'], placeholderKey: 'filterServicePlaceholder', required: true }
     ];
   },
 };
