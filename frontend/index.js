@@ -1,6 +1,15 @@
 /* FILE: extensions/plugins/gesture-vision-plugin-home-assistant/frontend/index.js */
+'use strict';
+
+// Ensure the global registry exists
+if (!window.GestureVisionPlugins) {
+  window.GestureVisionPlugins = {};
+}
+
+// Import dependencies at the top level, as is standard for ES modules.
 import { getHaActionDisplayDetails } from "./action-display-details.js";
 
+// Define the module object directly.
 const homeAssistantPluginFrontendModule = {
   manifest: { /* populated by loader */ },
 
@@ -102,7 +111,6 @@ const homeAssistantPluginFrontendModule = {
 
     const fetchEntities = async (_ctx, currentSettings, filterText) => {
       const domain = currentSettings?.domain;
-      // FIX: Use explicit check for a non-empty string.
       if (typeof domain !== 'string' || !domain.trim()) {
         return [{ value: "", label: translate("Select_Domain"), disabled: true }];
       }
@@ -116,7 +124,6 @@ const homeAssistantPluginFrontendModule = {
 
     const fetchServices = async (_ctx, currentSettings, filterText) => {
       const entityId = currentSettings?.entityId;
-      // FIX: Use explicit check for a non-empty string.
       if (typeof entityId !== 'string' || !entityId.trim()) {
         return [{ value: "", label: translate("Select_Entity"), disabled: true }];
       }
@@ -139,4 +146,5 @@ const homeAssistantPluginFrontendModule = {
   },
 };
 
-export default homeAssistantPluginFrontendModule;
+// Register the module with the global registry synchronously.
+window.GestureVisionPlugins['gesture-vision-plugin-home-assistant'] = homeAssistantPluginFrontendModule;
