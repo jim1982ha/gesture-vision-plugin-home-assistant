@@ -1,4 +1,3 @@
-/* FILE: extensions/plugins/gesture-vision-plugin-home-assistant/frontend/index.js */
 'use strict';
 
 // Ensure the global registry exists
@@ -71,6 +70,7 @@ const homeAssistantPluginFrontendModule = {
 
   createGlobalSettingsComponent: (pluginId, manifest, context) => {
     const { BasePluginGlobalSettingsComponent } = context.uiComponents;
+    const { translate } = context.services.translationService;
     const haGlobalSettingsFields = [
       { id: 'url', type: 'url', labelKey: 'haUrl', placeholderKey: 'haUrlPlaceholder', autocomplete: 'url' },
       { id: 'token', type: 'password', labelKey: 'accessToken', autocomplete: 'new-password' }
@@ -78,7 +78,6 @@ const homeAssistantPluginFrontendModule = {
 
     const component = new BasePluginGlobalSettingsComponent(pluginId, manifest, context, haGlobalSettingsFields);
     component.validateForm = function() {
-      const { translate } = this.context.services;
       const values = this.getFormValues();
       const errors = [];
       if (values.url && !values.token) errors.push(translate("haTokenRequiredWithUrl"));
@@ -92,7 +91,7 @@ const homeAssistantPluginFrontendModule = {
 
   actionSettingsFields: (context) => {
     const { coreStateManager, services } = context;
-    const { translate } = services;
+    const { translate } = services.translationService;
     
     const getHaData = () => coreStateManager.getState().pluginExtDataCache.get('gesture-vision-plugin-home-assistant');
     const isHaReady = () => {

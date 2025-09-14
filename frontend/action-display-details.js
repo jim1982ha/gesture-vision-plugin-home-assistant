@@ -1,57 +1,29 @@
-/* FILE: plugins/home-assistant/frontend/action-display-details.js */
-export const getHaActionDisplayDetails = (settings, context) => {
-  const { services, shared, manifest } = context;
-  const { translate } = services;
-  const { getActionIconDetails } = shared.services.actionDisplayUtils;
-  const { GESTURE_CATEGORY_ICONS } = shared.constants;
+/* FILE: extensions/plugins/gesture-vision-plugin-home-assistant/frontend/action-display-details.js */
+'use strict';
 
-  if (
-    !settings ||
-    typeof settings.entityId !== "string" ||
-    !settings.entityId ||
-    typeof settings.service !== "string" ||
-    !settings.service
-  ) {
-    const errorMsg = translate("invalidHaActionSettings", {
-      defaultValue: "Invalid Home Assistant action settings.",
-    });
-    console.warn(
-      `[HA Plugin getHaActionDisplayDetails] Settings invalid. EntityID: '${settings?.entityId}', Service: '${settings?.service}'. Returning error.`
-    );
-    return [{ icon: GESTURE_CATEGORY_ICONS.UI_ERROR.iconName, value: errorMsg }];
+/**
+ * Generates the display details for a Home Assistant action card.
+ * @param {object} settings - The action-specific settings.
+ * @param {import('#frontend/types/index.js').PluginUIContext} context - The plugin UI context.
+ * @returns {import('#shared/index.js').ActionDisplayDetail[]} An array of details to display.
+ */
+export function getHaActionDisplayDetails(settings, context) {
+  const { translate } = context.services.translationService;
+  
+  if (!settings?.entityId || !settings?.service) {
+    return [{ icon: 'error_outline', value: translate("invalidHaActionSettings") }];
   }
 
-  const iconDetails = getActionIconDetails(manifest);
-
-  const serviceKeyFromSettings = settings.service;
-  const serviceNameOnly = serviceKeyFromSettings.includes(".")
-    ? serviceKeyFromSettings.substring(serviceKeyFromSettings.indexOf(".") + 1)
-    : serviceKeyFromSettings;
-
-  const commonServicesToTranslate = ["toggle", "turn_on", "turn_off"];
-  let serviceDisplayName = serviceNameOnly;
-
-  if (commonServicesToTranslate.includes(serviceNameOnly.toLowerCase())) {
-    serviceDisplayName = translate(serviceNameOnly.toLowerCase(), {
-      defaultValue: serviceNameOnly,
-    });
-  }
-
-  const entityIdDisplay =
-    settings.entityId || translate("Not Set", { defaultValue: "(Not Set)" });
-
+  const commonServices = {
+    "toggle": translate("toggle", { defaultValue: "Toggle" }),
+    "turn_on": translate("turn_on", { defaultValue: "Turn On" }),
+    "turn_off": translate("turn_off", { defaultValue: "Turn Off" }),
+  };
+  
+  const serviceDisplayName = commonServices[settings.service] || settings.service;
+  
   return [
-    {
-      icon: iconDetails.iconName,
-      iconType: iconDetails.iconType,
-      value: entityIdDisplay,
-    },
-    {
-      icon: GESTURE_CATEGORY_ICONS.UI_ACTION.iconName,
-      iconType: "material-icons",
-      value: `${translate("Service", {
-        defaultValue: "Service",
-      })}: ${serviceDisplayName}`,
-    },
+    { icon: 'mdi-power-plug', iconType: 'mdi', value: settings.entityId },
+    { icon: 'mdi-cogs', iconType: 'mdi', value: `${translate("Service")}: ${serviceDisplayName}` },
   ];
-};
+}

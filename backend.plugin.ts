@@ -1,9 +1,10 @@
 /* FILE: extensions/plugins/home-assistant/backend.plugin.ts */
-import { Router, type Request, type Response, type NextFunction, type RequestHandler } from 'express';
+import { Router, type Request, type Response as ExpressResponse, type NextFunction, type RequestHandler } from 'express';
 import { z, ZodSchema } from 'zod';
+import fetch, { type Response } from 'node-fetch';
 
 import { BaseBackendPlugin } from '#backend/plugins/base-backend.plugin.js';
-
+import { createErrorResult, executeWithRetry } from '#backend/utils/action-helpers.js';
 import manifestFromFile from './plugin.json' with { type: "json" };
 import { type HomeAssistantConfig, type HaActionInstanceSettings, type HAEntity, type HAServices } from './types.js';
 
@@ -24,8 +25,7 @@ const HaActionSettingsSchema = z.object({
     service: z.string().min(1, { message: "Service is required" }),
 });
 
-// Helper to wrap async route handlers and catch errors, ensuring correct signature for Express.
-const asyncHandler = (fn: (req: Request, res: Response, next: NextFunction) => Promise<void>): RequestHandler => {
+const asyncHandler = (fn: (req: Request, res: ExpressResponse, next: NextFunction) => Promise<void>): RequestHandler => {
     return (req, res, next) => {
         Promise.resolve(fn(req, res, next)).catch(next);
     };
@@ -34,41 +34,45 @@ const asyncHandler = (fn: (req: Request, res: Response, next: NextFunction) => P
 class HomeAssistantActionHandler implements ActionHandler {
   async execute(instanceSettings: HaActionInstanceSettings, _actionDetails: ActionDetails, pluginGlobalConfig?: HomeAssistantConfig): Promise<ActionResult> {
     if (!pluginGlobalConfig || !pluginGlobalConfig.url || !pluginGlobalConfig.token) {
-        return { success: false, message: "Home Assistant global configuration (URL/Token) is missing." };
+        return createErrorResult("Home Assistant global configuration (URL/Token) is missing.");
     }
     if (!instanceSettings || !instanceSettings.entityId || !instanceSettings.service) {
-        return { success: false, message: "Home Assistant action settings (entityId/service) are missing." };
+        return createErrorResult("Home Assistant action settings (entityId/service) are missing.");
     }
 
-    try {
-        const { entityId, service: serviceName } = instanceSettings;
-        const domain = entityId.split('.')[0];
-        if (!domain) return { success: false, message: `Invalid entityId format: ${entityId}.`};
-        
-        const haApiUrl = `${pluginGlobalConfig.url.replace(/\/$/, "")}/api/services/${domain}/${serviceName}`;
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 8000);
-        
-        const response = await fetch(haApiUrl, {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${pluginGlobalConfig.token}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ entity_id: entityId }),
-            signal: controller.signal,
-        });
-        clearTimeout(timeoutId);
+    const { entityId, service: serviceName } = instanceSettings;
+    const domain = entityId.split('.')[0];
+    if (!domain) return createErrorResult(`Invalid entityId format: ${entityId}.`);
 
-        if (!response.ok) {
-            const errorText = await response.text().catch(() => `Status ${response.status}`);
-            return { success: false, message: `HA API Error (${response.status}): ${errorText}`, details: { statusCode: response.status } };
-        }
-        return { success: true, message: `Successfully called service ${domain}.${serviceName} on ${entityId}.`, details: { entityId, service: `${domain}.${serviceName}` }};
-    } catch (error: unknown) {
-        const typedError = error as Error & { code?: string; type?: string };
-        let errorMessage = typedError.message;
-        if (typedError.name === 'AbortError') errorMessage = `HA API call timed out.`;
-        else if (typedError.code === 'ECONNREFUSED') errorMessage = `Connection refused by HA. Is it running?`;
-        return { success: false, message: `Error calling HA API: ${errorMessage}`, details: { error: errorMessage } };
-    }
+    const haApiUrl = `${pluginGlobalConfig.url.replace(/\/$/, "")}/api/services/${domain}/${serviceName}`;
+    
+    const actionFn = async () => {
+      const response = await fetch(haApiUrl, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${pluginGlobalConfig.token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ entity_id: entityId }),
+          signal: AbortSignal.timeout(8000),
+      });
+      const responseBody = response.ok ? instanceSettings : await response.text().catch(() => `Status ${response.status}`);
+      return { response, responseBody };
+    };
+
+    const isRetryable = (_error: unknown, response?: Response): boolean => {
+      if (_error instanceof Error) {
+        const msg = _error.message.toLowerCase();
+        if (msg.includes('timeout') || msg.includes('econnrefused')) return true;
+      }
+      if (response && response.status >= 500 && response.status < 600) return true;
+      return false;
+    };
+    
+    return executeWithRetry<HaActionInstanceSettings>({
+      actionFn,
+      isRetryableError: isRetryable,
+      maxRetries: 2,
+      initialDelayMs: 1500,
+      actionName: `Home Assistant service call to ${entityId}`,
+    });
   }
 }
 
@@ -88,12 +92,6 @@ class HomeAssistantBackendPlugin extends BaseBackendPlugin {
   public getApiRouter(): Router | null {
     const router = Router();
     
-    router.post('/test', asyncHandler(async (req, res, _next) => {
-        const configToTest = req.body as HomeAssistantConfig;
-        const result = await this.testConnection(configToTest);
-        res.json({ pluginId: this.manifest.id, ...result });
-    }));
-
     router.get('/entities', asyncHandler(async (_req, res, _next) => {
         const config = await this.context?.getPluginGlobalConfig<HomeAssistantConfig>();
         if (!config?.url || !config.token) {
@@ -105,7 +103,7 @@ class HomeAssistantBackendPlugin extends BaseBackendPlugin {
             res.json(entities);
         } catch (error) {
             console.error(`[HA Plugin Backend] Error fetching entities: ${(error as Error).message}`);
-            res.json([]); // Return empty array on error
+            res.json([]);
         }
     }));
 
@@ -120,7 +118,7 @@ class HomeAssistantBackendPlugin extends BaseBackendPlugin {
             res.json(services);
         } catch (error) {
             console.error(`[HA Plugin Backend] Error fetching services: ${(error as Error).message}`);
-            res.json({}); // Return empty object on error
+            res.json({});
         }
     }));
 
@@ -130,9 +128,8 @@ class HomeAssistantBackendPlugin extends BaseBackendPlugin {
   private getSpecificNetworkErrorMessage(error: Error & { code?: string; type?: string }): { messageKey: string, message: string } {
     const errorMessage = error.message;
 
-    if (error.name === 'AbortError') {
-        return { messageKey: "haTimeout", message: "Request timed out." };
-    }
+    if (error.name === 'AbortError') return { messageKey: "haTimeout", message: "Request timed out." };
+    
     switch (error.code) {
         case 'ENOTFOUND': return { messageKey: "haDnsError", message: `DNS lookup failed for host.` };
         case 'ECONNREFUSED': return { messageKey: "haConnectionRefused", message: `Connection refused.` };
