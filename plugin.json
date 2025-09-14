@@ -11,7 +11,8 @@
   "capabilities": {
     "hasGlobalSettings": true,
     "providesActions": true,
-    "requiresHaData": true
+    "requiresHaData": true,
+    "canTestConnection": true
   },
   "globalConfigFileName": "config.home-assistant.json",
   "defaultGlobalConfigPath": "default.config.home-assistant.json",

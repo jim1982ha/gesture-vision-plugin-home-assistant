@@ -8,6 +8,8 @@ if (!window.GestureVisionPlugins) {
 // Import dependencies at the top level, as is standard for ES modules.
 import { getHaActionDisplayDetails } from "./action-display-details.js";
 
+let unsubscribeStore = null;
+
 // Define the module object directly.
 const homeAssistantPluginFrontendModule = {
   manifest: { /* populated by loader */ },
@@ -51,7 +53,8 @@ const homeAssistantPluginFrontendModule = {
       }
     };
     
-    appStore.subscribe((newState, prevState) => {
+    if (unsubscribeStore) unsubscribeStore();
+    unsubscribeStore = appStore.subscribe((newState, prevState) => {
       const newConfig = newState.pluginGlobalConfigs.get(HA_PLUGIN_ID);
       const oldConfig = prevState.pluginGlobalConfigs.get(HA_PLUGIN_ID);
       const newManifest = newState.pluginManifests.find(m => m.id === HA_PLUGIN_ID);
@@ -64,6 +67,13 @@ const homeAssistantPluginFrontendModule = {
     const initialConfig = appStore.getState().pluginGlobalConfigs.get(HA_PLUGIN_ID);
     const initialManifest = appStore.getState().pluginManifests.find(m => m.id === HA_PLUGIN_ID);
     if (initialConfig && initialManifest?.status === 'enabled') await fetchHaData();
+  },
+
+  destroy() {
+    if (unsubscribeStore) {
+      unsubscribeStore();
+      unsubscribeStore = null;
+    }
   },
 
   getActionDisplayDetails: getHaActionDisplayDetails,
