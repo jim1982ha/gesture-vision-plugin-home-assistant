@@ -1,35 +1,16 @@
 /* FILE: extensions/plugins/home-assistant/backend.plugin.ts */
-import { Router, type Request, type Response as ExpressResponse, type NextFunction, type RequestHandler } from 'express';
-import { z, ZodSchema } from 'zod';
+import { Router } from 'express';
+import { type ZodType } from 'zod';
 import fetch, { type Response } from 'node-fetch';
 
 import { BaseBackendPlugin } from '#backend/plugins/base-backend.plugin.js';
 import { createErrorResult, executeWithRetry } from '#backend/utils/action-helpers.js';
 import manifestFromFile from './plugin.json' with { type: "json" };
-import { type HomeAssistantConfig, type HaActionInstanceSettings, type HAEntity, type HAServices } from './types.js';
+import { HaGlobalConfigSchema, HaActionSettingsSchema, type HomeAssistantConfig, type HaActionInstanceSettings, type HAEntity, type HAServices } from './schemas.js';
+import { asyncHandler } from '#backend/api/async-handler.js';
 
 import type { ActionResult, PluginManifest, ActionDetails } from "#shared/index.js";
 import type { ActionHandler } from '#backend/types/index.js';
-
-const HaGlobalConfigSchema = z.object({
-  url: z.string().url({ message: "Invalid Home Assistant URL" }).or(z.literal("")).optional(),
-  token: z.string().or(z.literal("")).optional(),
-}).refine(data => !(data.url && !data.token), {
-    message: "Access token is required if URL is provided.", path: ["token"]
-}).refine(data => !(!data.url && data.token), {
-    message: "URL is required if token is provided.", path: ["url"]
-});
-
-const HaActionSettingsSchema = z.object({
-    entityId: z.string().min(1, { message: "Entity ID is required" }),
-    service: z.string().min(1, { message: "Service is required" }),
-});
-
-const asyncHandler = (fn: (req: Request, res: ExpressResponse, next: NextFunction) => Promise<void>): RequestHandler => {
-    return (req, res, next) => {
-        Promise.resolve(fn(req, res, next)).catch(next);
-    };
-};
 
 class HomeAssistantActionHandler implements ActionHandler {
   async execute(instanceSettings: HaActionInstanceSettings, _actionDetails: ActionDetails, pluginGlobalConfig?: HomeAssistantConfig): Promise<ActionResult> {
@@ -81,11 +62,11 @@ class HomeAssistantBackendPlugin extends BaseBackendPlugin {
     super(manifestFromFile as PluginManifest, new HomeAssistantActionHandler());
   }
 
-  getGlobalConfigValidationSchema(): ZodSchema | null {
+  getGlobalConfigValidationSchema(): ZodType | null {
     return HaGlobalConfigSchema;
   }
 
-  getActionConfigValidationSchema(): ZodSchema | null {
+  getActionConfigValidationSchema(): ZodType | null {
     return HaActionSettingsSchema;
   }
 
@@ -160,6 +141,7 @@ class HomeAssistantBackendPlugin extends BaseBackendPlugin {
   }
 
   public async getEntities(config: HomeAssistantConfig): Promise<HAEntity[]> {
+    if (!config.url) throw new Error("Home Assistant URL is not configured.");
     const response = await fetch(`${config.url.replace(/\/$/, "")}/api/states`, {
         method: 'GET',
         headers: { 'Authorization': `Bearer ${config.token}` },
@@ -172,6 +154,7 @@ class HomeAssistantBackendPlugin extends BaseBackendPlugin {
   }
 
   public async getServices(config: HomeAssistantConfig): Promise<HAServices> {
+    if (!config.url) throw new Error("Home Assistant URL is not configured.");
     const response = await fetch(`${config.url.replace(/\/$/, "")}/api/services`, {
         method: 'GET',
         headers: { 'Authorization': `Bearer ${config.token}` },
