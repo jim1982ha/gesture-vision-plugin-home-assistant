@@ -37,5 +37,8 @@
     "turn_off": "Éteindre",
     "invalidHaActionSettings": "Paramètres d'action Home Assistant invalides.",
     "haDataFetchFailed": "Échec de la récupération des données Home Assistant : {message}",
-    "pluginTestConfigMissing": "Les détails de configuration sont requis pour tester la connexion."
+    "pluginTestConfigMissing": "Les détails de configuration sont requis pour tester la connexion.",
+    "refreshHaData": "Rafraîchir",
+    "refreshingHaData": "Rafraîchissement...",
+    "haDataRefreshed": "Données Home Assistant rafraîchies avec succès."
 }

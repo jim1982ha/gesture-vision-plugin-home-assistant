@@ -17,5 +17,5 @@
   "globalConfigFileName": "config.home-assistant.json",
   "defaultGlobalConfigPath": "default.config.home-assistant.json",
   "backendEntry": "backend.plugin.js",
-  "frontendEntry": "frontend/index.js"
+  "frontendEntry": "frontend/index.tsx"
 }

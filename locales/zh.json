@@ -37,5 +37,8 @@
   "turn_off": "关闭",
   "invalidHaActionSettings": "无效的 Home Assistant 动作设置",
   "haDataFetchFailed": "获取 Home Assistant 数据失败: {message}",
-  "pluginTestConfigMissing": "测试连接需要配置详细信息。"
+  "pluginTestConfigMissing": "测试连接需要配置详细信息。",
+  "refreshHaData": "刷新数据",
+  "refreshingHaData": "刷新中...",
+  "haDataRefreshed": "Home Assistant 数据已成功刷新。"
 }

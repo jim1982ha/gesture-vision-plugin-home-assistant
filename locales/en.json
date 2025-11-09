@@ -37,5 +37,8 @@
   "turn_off": "Turn Off",
   "invalidHaActionSettings": "Invalid Home Assistant action settings.",
   "haDataFetchFailed": "Failed to fetch Home Assistant data: {message}",
-  "pluginTestConfigMissing": "Configuration details are required to test the connection."
+  "pluginTestConfigMissing": "Configuration details are required to test the connection.",
+  "refreshHaData": "Refresh Data",
+  "refreshingHaData": "Refreshing...",
+  "haDataRefreshed": "Home Assistant data refreshed successfully."
 }

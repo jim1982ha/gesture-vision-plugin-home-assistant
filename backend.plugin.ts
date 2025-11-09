@@ -4,7 +4,7 @@ import { type ZodType } from 'zod';
 import fetch, { type Response } from 'node-fetch';
 
 import { BaseBackendPlugin } from '#backend/plugins/base-backend.plugin.js';
-import { createErrorResult, executeWithRetry } from '#backend/utils/action-helpers.js';
+import { createErrorResult, executeWithRetry } from '#backend/utils/index.js';
 import manifestFromFile from './plugin.json' with { type: "json" };
 import { HaGlobalConfigSchema, HaActionSettingsSchema, type HomeAssistantConfig, type HaActionInstanceSettings, type HAEntity, type HAServices } from './schemas.js';
 import { asyncHandler } from '#backend/api/async-handler.js';
