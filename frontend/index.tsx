@@ -7,6 +7,7 @@ import type { HAEntity, HAServices } from '../schemas.js';
 import type { AppState } from '#frontend/core/state/app-store.js';
 
 let unsubscribeStore: (() => void) | null = null;
+let dataRefreshSubscription: (() => void) | null = null;
 
 const homeAssistantPluginFrontendModule: FrontendPluginModule = {
   async init(context: PluginUIContext) {
@@ -52,7 +53,7 @@ const homeAssistantPluginFrontendModule: FrontendPluginModule = {
       }
     };
     
-    pubsub.subscribe(`ha:requestDataRefresh`, fetchHaData);
+    dataRefreshSubscription = pubsub.subscribe(`ha:requestDataRefresh`, fetchHaData);
 
     if (unsubscribeStore) unsubscribeStore();
     unsubscribeStore = appStore.subscribe((newState: AppState, prevState: AppState) => {
@@ -74,6 +75,10 @@ const homeAssistantPluginFrontendModule: FrontendPluginModule = {
     if (unsubscribeStore) {
       unsubscribeStore();
       unsubscribeStore = null;
+    }
+    if (dataRefreshSubscription) {
+      dataRefreshSubscription();
+      dataRefreshSubscription = null;
     }
   },
 
