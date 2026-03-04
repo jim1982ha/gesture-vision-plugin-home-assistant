@@ -1,4 +1,4 @@
-/* FILE: extensions/plugins/gesture-vision-plugin-home-assistant/frontend/index.tsx */
+// FILE: extensions/plugins/gesture-vision-plugin-home-assistant/frontend/index.tsx
 import { getHaActionDisplayDetails } from "./action-display-details.js";
 import { HaGlobalSettingsComponent } from "./GlobalSettingsComponent.js";
 import type { FrontendPluginModule, PluginUIContext } from '#frontend/types/index.js';
@@ -26,7 +26,7 @@ const homeAssistantPluginFrontendModule: FrontendPluginModule = {
       isFetchingHaData = true;
       let haDataCache: { entities: HAEntity[] | null, services: HAServices | null } | null = null;
       try {
-        // FIX: Removed leading slashes to support HA Ingress relative paths
+        // FIX: Removed leading slashes to support HA Ingress relative paths (e.g. api/hassio_ingress/...)
         const [entitiesResponse, servicesResponse] = await Promise.all([
           fetch(`api/plugins/${HA_PLUGIN_ID}/entities`),
           fetch(`api/plugins/${HA_PLUGIN_ID}/services`),
