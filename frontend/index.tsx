@@ -5,10 +5,8 @@ import type { FrontendPluginModule, PluginUIContext } from '#frontend/types/inde
 import type { ActionSettingFieldDescriptor, ActionSettingFieldOption, PluginManifest } from '#shared/index.js';
 import type { HAEntity, HAServices } from '../schemas.js';
 import type { AppState } from '#frontend/core/state/app-store.js';
-
 let unsubscribeStore: (() => void) | null = null;
 let dataRefreshSubscription: (() => void) | null = null;
-
 const homeAssistantPluginFrontendModule: FrontendPluginModule = {
   async init(context: PluginUIContext) {
     const { pubsub, translationService } = context.services;
@@ -17,23 +15,21 @@ const homeAssistantPluginFrontendModule: FrontendPluginModule = {
     const HA_PLUGIN_ID = context.manifest!.id;
     let isFetchingHaData = false;
     const appStore = coreStateManager;
-
     const fetchHaData = async () => {
       if (isFetchingHaData) return;
       const currentHaConfig = appStore.getState().pluginGlobalConfigs.get(HA_PLUGIN_ID) as { url?: string, token?: string };
-      
       if (!currentHaConfig?.url || !currentHaConfig.token) {
         appStore.getState().actions.setPluginExtData(HA_PLUGIN_ID, { entities: null, services: null });
         pubsub.publish('PLUGIN_EXT_DATA_UPDATED', HA_PLUGIN_ID);
         return;
       }
-    
       isFetchingHaData = true;
       let haDataCache: { entities: HAEntity[] | null, services: HAServices | null } | null = null;
       try {
+        // FIX: Removed leading slashes to support HA Ingress relative paths
         const [entitiesResponse, servicesResponse] = await Promise.all([
-          fetch(`/api/plugins/${HA_PLUGIN_ID}/entities`),
-          fetch(`/api/plugins/${HA_PLUGIN_ID}/services`),
+          fetch(`api/plugins/${HA_PLUGIN_ID}/entities`),
+          fetch(`api/plugins/${HA_PLUGIN_ID}/services`),
         ]);
         const entities = entitiesResponse.ok ? await entitiesResponse.json() : [];
         const services = servicesResponse.ok ? await servicesResponse.json() : {};
@@ -52,9 +48,7 @@ const homeAssistantPluginFrontendModule: FrontendPluginModule = {
         pubsub.publish('PLUGIN_EXT_DATA_UPDATED', HA_PLUGIN_ID);
       }
     };
-    
     dataRefreshSubscription = pubsub.subscribe(`ha:requestDataRefresh`, fetchHaData);
-
     if (unsubscribeStore) unsubscribeStore();
     unsubscribeStore = appStore.subscribe((newState: AppState, prevState: AppState) => {
       const newConfig = newState.pluginGlobalConfigs.get(HA_PLUGIN_ID);
@@ -65,12 +59,10 @@ const homeAssistantPluginFrontendModule: FrontendPluginModule = {
       const justEnabled = (!oldManifest || oldManifest.status === 'disabled') && newManifest?.status === 'enabled';
       if (configChanged || justEnabled) fetchHaData();
     });
-    
     const initialConfig = appStore.getState().pluginGlobalConfigs.get(HA_PLUGIN_ID);
     const initialManifest = appStore.getState().pluginManifests.find((m: PluginManifest) => m.id === HA_PLUGIN_ID);
     if (initialConfig && initialManifest?.status === 'enabled') await fetchHaData();
   },
-
   destroy() {
     if (unsubscribeStore) {
       unsubscribeStore();
@@ -81,21 +73,16 @@ const homeAssistantPluginFrontendModule: FrontendPluginModule = {
       dataRefreshSubscription = null;
     }
   },
-
   getActionDisplayDetails: getHaActionDisplayDetails,
-
   GlobalSettingsComponent: HaGlobalSettingsComponent,
-
   actionSettingsFields: (context: PluginUIContext): ActionSettingFieldDescriptor[] => {
     const { coreStateManager, services } = context;
     const { translate } = services.translationService;
-    
     const getHaData = () => coreStateManager.getState().pluginExtDataCache.get('gesture-vision-plugin-home-assistant') as { entities: HAEntity[] | null, services: HAServices | null } | undefined;
     const isHaReady = () => {
         const data = getHaData();
         return !!(data && data.entities && data.services);
     };
-
     const fetchDomains = async (_ctx: PluginUIContext, _currentSettings?: Record<string, unknown>, filterText?: string): Promise<ActionSettingFieldOption[]> => {
       if (!isHaReady()) return [{ value: "", label: translate("haNotConnectedErrorShort"), disabled: true }];
       const haData = getHaData();
@@ -104,7 +91,6 @@ const homeAssistantPluginFrontendModule: FrontendPluginModule = {
         .filter(d => !filterText || d.toLowerCase().includes(filterText.toLowerCase()))
         .sort().map(d => ({ value: d, label: d }));
     };
-
     const fetchEntities = async (_ctx: PluginUIContext, currentSettings?: Record<string, unknown>, filterText?: string): Promise<ActionSettingFieldOption[]> => {
       const domain = currentSettings?.domain as string | undefined;
       if (!domain || !domain.trim()) {
@@ -117,7 +103,6 @@ const homeAssistantPluginFrontendModule: FrontendPluginModule = {
         .sort((a, b) => String(a.attributes?.friendly_name || a.entity_id).localeCompare(String(b.attributes?.friendly_name || b.entity_id)))
         .map(e => ({ value: e.entity_id, label: `${e.attributes?.friendly_name || e.entity_id}` }));
     };
-
     const fetchServices = async (_ctx: PluginUIContext, currentSettings?: Record<string, unknown>, filterText?: string): Promise<ActionSettingFieldOption[]> => {
       const entityId = currentSettings?.entityId as string | undefined;
       if (!entityId || !entityId.trim()) {
@@ -133,7 +118,6 @@ const homeAssistantPluginFrontendModule: FrontendPluginModule = {
         .map(s => ({ value: s, label: commonServices.includes(s) ? translate(s, { defaultValue: s }) : s }))
         .filter(item => !filterText || item.label.toLowerCase().includes(filterText.toLowerCase()) || item.value.toLowerCase().includes(filterText.toLowerCase()));
     };
-
     return [
       { id: 'domain', type: 'select', labelKey: 'haDomain', optionsSource: fetchDomains, placeholderKey: 'filterDomainPlaceholder', required: true },
       { id: 'entityId', type: 'select', labelKey: 'haEntity', optionsSource: fetchEntities, dependsOn: ['domain'], placeholderKey: 'filterEntityPlaceholder', required: true },
@@ -141,5 +125,4 @@ const homeAssistantPluginFrontendModule: FrontendPluginModule = {
     ];
   },
 };
-
 export default homeAssistantPluginFrontendModule;
